@@ -3,7 +3,7 @@ import os
 import speech_recognition as speech
 from pydub import AudioSegment
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, \
-    QPushButton, QFileDialog, QTextEdit
+    QPushButton, QFileDialog, QTextEdit, QMessageBox
 
 
 class TranscribingApp(QWidget):
@@ -12,7 +12,6 @@ class TranscribingApp(QWidget):
         self.setWindowTitle('Video to text transcriber')
 
         self.file_path = None
-
         layout = QVBoxLayout()
 
         self.label = QLabel('Select a file to transcribe')
@@ -44,21 +43,38 @@ class TranscribingApp(QWidget):
 
     def transcribe(self):
         if self.file_path:
-            audio_path = 'audio.wav'
-            video_file = AudioSegment.from_file(self.file_path, format="mp4")
+            try:
+                self.transcription_output.setPlainText(
+                    "Transcribing, please wait")
+                audio_path = 'audio.wav'
+                video_file = AudioSegment.from_file(self.file_path,
+                                                    format="mp4")
+                audio = video_file.set_channels(1). \
+                    set_frame_rate(16000).set_sample_width(2)
+                audio.export(audio_path, format='wav')
 
-            audio = video_file.set_channels(1). \
-                set_frame_rate(16000).set_sample_width(2)
-            audio.export(audio_path, format='wav')
+                recognition = speech.Recognizer()
+                with speech.AudioFile(audio_path) as source:
+                    audio_text = recognition.record(source)
 
-            recognition = speech.Recognizer()
-            with speech.AudioFile(audio_path) as source:
-                audio_text = recognition.record(source)
+                text = recognition.recognize_google(audio_text,
+                                                    language='en-US')
+                self.transcription_output.setPlainText(text)
+                os.remove(audio_path)
 
-            text = recognition.recognize_google(audio_text, language='en-US')
-            self.transcription_output.setPlainText(text)
+                message_box = QMessageBox()
+                message_box.setWindowTitle("Transcription Success")
+                message_box.setText("Transcription completed successfully!")
+                message_box.setIcon(QMessageBox.Information)
+                message_box.exec_()
 
-            os.remove(audio_path)
+            except OSError as e:
+                message_box = QMessageBox()
+                message_box.setWindowTitle("Transcription Error")
+                message_box.setText(
+                    f"Error occurred during transcription: {str(e)}")
+                message_box.setIcon(QMessageBox.Critical)
+                message_box.exec_()
 
 
 if __name__ == '__main__':
