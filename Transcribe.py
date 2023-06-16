@@ -1,19 +1,21 @@
 import sys
 import os
-import speech_recognition as sr
+import speech_recognition as speech
 from pydub import AudioSegment
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog, QTextEdit
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, \
+    QPushButton, QFileDialog, QTextEdit
+
 
 class TranscribingApp(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('Transcribing App')
+        self.setWindowTitle('Video to text transcriber')
 
         self.file_path = None
 
         layout = QVBoxLayout()
-        
-        self.label = QLabel('Please select a video file to transcribe.')
+
+        self.label = QLabel('Select a file to transcribe')
         layout.addWidget(self.label)
 
         self.transcription_output = QTextEdit()
@@ -42,22 +44,22 @@ class TranscribingApp(QWidget):
 
     def transcribe(self):
         if self.file_path:
-            # Convert video file to audio
             audio_path = 'audio.wav'
-            video = AudioSegment.from_file(self.file_path, format='mp4')
-            audio = video.set_channels(1).set_frame_rate(16000).set_sample_width(2)
+            video_file = AudioSegment.from_file(self.file_path, format="mp4")
+
+            audio = video_file.set_channels(1). \
+                set_frame_rate(16000).set_sample_width(2)
             audio.export(audio_path, format='wav')
 
-            # Perform speech recognition
-            r = sr.Recognizer()
-            with sr.AudioFile(audio_path) as source:
-                audio_text = r.record(source)
+            recognition = speech.Recognizer()
+            with speech.AudioFile(audio_path) as source:
+                audio_text = recognition.record(source)
 
-            text = r.recognize_google(audio_text, language='en-US')
+            text = recognition.recognize_google(audio_text, language='en-US')
             self.transcription_output.setPlainText(text)
 
-            # Clean up temporary audio file
             os.remove(audio_path)
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
